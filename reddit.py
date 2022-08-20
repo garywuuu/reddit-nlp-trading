@@ -1,4 +1,4 @@
-import praw
+import asyncpraw
 import pandas as pd
 from nltk.sentiment.vader import SentimentIntensityAnalyzer as SIA
 
@@ -15,42 +15,33 @@ trading_client = TradingClient(API_KEY, SECRET_KEY)
 
 sia = SIA()
 
-
-subreddit1, subreddit2 = 'ethereum', 'bitcoin'
-
-headlines = {
-  subreddit1 : set(),
-  subreddit2 : set()
-}
-
-scores = {
-  subreddit1 : [],
-  subreddit2 : []
-}
-
+subreddit = 'ethereum'
+headlines = set()
+scores = []
 
 subr_to_asset = {
-  'ethereum' : 'ETH/USD',
-  'bitcoin' : 'BTC/USD'
+  'ethereum' : 'ETH/USD'
 }
 
-reddit = praw.Reddit(client_id='Z6J1ZDT3fApjnmrHiMU6qw',
-                     client_secret='jU7Oa-qfcU8od4X9E-6s0CwQp1tmEA',
-                     user_agent='alpacatradoor')
+reddit = asyncpraw.Reddit(
+    client_id='oIE97p3JpStwi3zkhaHDbQ',
+    client_secret='eTKyWcGQx4BbR5FIepquxMxBIdfcxA',
+    redirect_uri="http://localhost:8080",
+    user_agent="trading by u/notlarry12",
+)
 
 wait = 3000
 
 async def main():
   while True:
-    task1 = loop.create_task(get_headlines(subreddit1))
-    task2 = loop.create_task(get_headlines(subreddit2))
+    task1 = loop.create_task(get_headlines())
     # Wait for the tasks to finish
+    await asyncio.wait([task1])
 
-    task3 = loop.create_task(calculate_polarity(subreddit1))
-    task4 = loop.create_task(calculate_polarity(subreddit2))
+    task2 = loop.create_task(calculate_polarity())
     # Wait for the tasks to finish
-    # Wait for the task to finish
-    await asyncio.wait([task1, task2, task3, task4])
+    await asyncio.wait([task2])
+
     await trade()
     # # Wait for the value of waitTime between each quote request
     await asyncio.sleep(wait)
@@ -58,11 +49,11 @@ async def main():
 # each subreddit gets its own set of headlines within the headlines dictionary
 
 # using reddit client, fetching new headlines within the given subreddit
-async def get_headlines(subreddit : str):
+async def get_headlines():
   try:
     for submission in reddit.subreddit(subreddit).new(limit=None):
-        headlines[subreddit].add(submission.title)
-    print("hello")
+        headlines.add(submission.title)
+    print("got headlines")
     return True
 
   except Exception as e:
@@ -70,16 +61,20 @@ async def get_headlines(subreddit : str):
     return False
 
 # scoring the headlines
-async def calculate_polarity(subreddit : str):
-  for line in headlines[subreddit]:
-      pol_score = sia.polarity_scores(line)
-      pol_score['headline'] = line
-      scores[subreddit] = pol_score
-  return True
+async def calculate_polarity():
+  try:
+    for line in headlines:
+        pol_score = sia.polarity_scores(line)
+        pol_score['headline'] = line
+        scores = pol_score
+    print("calculated polarity")
+    return True
+  except Exception as e:
+    print("There was an issue calculating polarity: {}")
+    return True
 
 async def trade():
-  df1 = pd.DataFrame.from_records(scores[subreddit1]).mean()
-  df2 = pd.DataFrame.from_records(scores[subreddit2]).mean()
+  mean = pd.DataFrame.from_records(scores).mean()
   print("Happy")
   return True
 
@@ -96,7 +91,7 @@ def post_order(subreddit : str):
     market_order = trading_client.submit_order(
       order_data=market_order_data)
     
-    print("Bought {}".format(subr_to_asset(subreddit)))
+    print("Bought {}". subr_to_asset(subreddit))
     return market_order
   
   except Exception as e:
