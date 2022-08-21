@@ -1,4 +1,4 @@
-import asyncpraw
+import praw
 import pandas as pd
 from nltk.sentiment.vader import SentimentIntensityAnalyzer as SIA
 
@@ -23,12 +23,10 @@ subr_to_asset = {
   'ethereum' : 'ETH/USD'
 }
 
-reddit = asyncpraw.Reddit(
+reddit = praw.Reddit(
     client_id='oIE97p3JpStwi3zkhaHDbQ',
     client_secret='eTKyWcGQx4BbR5FIepquxMxBIdfcxA',
-    redirect_uri="http://localhost:8080",
-    user_agent="trading by u/notlarry12",
-)
+    user_agent='trading by u/notlarry12')
 
 wait = 3000
 
@@ -66,7 +64,7 @@ async def calculate_polarity():
     for line in headlines:
         pol_score = sia.polarity_scores(line)
         pol_score['headline'] = line
-        scores = pol_score
+        scores.append(pol_score)
     print("calculated polarity")
     return True
   except Exception as e:
@@ -75,7 +73,7 @@ async def calculate_polarity():
 
 async def trade():
   mean = pd.DataFrame.from_records(scores).mean()
-  print("Happy")
+  print(mean)
   return True
 
 
