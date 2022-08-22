@@ -8,14 +8,15 @@ from alpaca.trading.requests import MarketOrderRequest
 from alpaca.trading.enums import OrderSide, TimeInForce
 import asyncio
 
+# Set up Alpaca-py Trading Client
 API_KEY = config.API_KEY
 SECRET_KEY = config.SECRET_KEY
 
 trading_client = TradingClient(API_KEY, SECRET_KEY)
 
+# Initialize necessary data structures, variables, and SIA
 sia = SIA()
 
-subreddit = 'ethereum'
 headlines = set()
 scores = []
 
@@ -23,13 +24,16 @@ subr_to_asset = {
   'ethereum' : 'ETH/USD'
 }
 
+subreddit = 'ethereum'
+wait = 3000
+
+# Initialize praw to scrape reddit data
 reddit = praw.Reddit(
     client_id='oIE97p3JpStwi3zkhaHDbQ',
     client_secret='eTKyWcGQx4BbR5FIepquxMxBIdfcxA',
     user_agent='trading by u/notlarry12')
 
-wait = 3000
-
+# Handle main async loop and tasks
 async def main():
   while True:
     task1 = loop.create_task(get_headlines())
@@ -40,13 +44,12 @@ async def main():
     # Wait for the tasks to finish
     await asyncio.wait([task2])
 
-    await trade()
+    await trade(subreddit)
     # # Wait for the value of waitTime between each quote request
     await asyncio.sleep(wait)
 
-# each subreddit gets its own set of headlines within the headlines dictionary
 
-# using reddit client, fetching new headlines within the given subreddit
+# Using reddit client, fetching new headlines within the given subreddit
 async def get_headlines():
   try:
     for submission in reddit.subreddit(subreddit).new(limit=None):
@@ -58,7 +61,7 @@ async def get_headlines():
     print("There was an issue scraping reddit data: {0}".format(e))
     return False
 
-# scoring the headlines
+# Scoring the polarity of each headline that we fetch
 async def calculate_polarity():
   try:
     for line in headlines:
@@ -71,14 +74,16 @@ async def calculate_polarity():
     print("There was an issue calculating polarity: {}")
     return True
 
-async def trade():
+# Placing trades based on the polarity of our headlines
+async def trade(sub : str):
   mean = pd.DataFrame.from_records(scores).mean()
-  print(mean)
+  compound_score = mean['compound']
+  if compound_score > 0.05:
+    post_order(sub)
   return True
 
-
+# Helper function to place orders
 def post_order(subreddit : str):
-  # prepare order
   try:
     market_order_data = MarketOrderRequest(
       symbol = subr_to_asset(subreddit), 
@@ -96,6 +101,7 @@ def post_order(subreddit : str):
     print("Issue posting order to Alpaca: {}".format(e))
     return False
 
+# Setup asyncio loop
 loop = asyncio.get_event_loop()
 loop.run_until_complete(main())
 loop.close()
