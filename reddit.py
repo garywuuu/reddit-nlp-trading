@@ -29,8 +29,8 @@ wait = 3000
 
 # Initialize praw to scrape reddit data
 reddit = praw.Reddit(
-    client_id='oIE97p3JpStwi3zkhaHDbQ',
-    client_secret='eTKyWcGQx4BbR5FIepquxMxBIdfcxA',
+    client_id=config.CLIENT_ID,
+    client_secret=config.CLIENT_SECRET,
     user_agent='trading by u/notlarry12')
 
 # Handle main async loop and tasks
