@@ -86,7 +86,7 @@ async def trade(sub : str):
 def post_order(subreddit : str):
   try:
     market_order_data = MarketOrderRequest(
-      symbol = subr_to_asset(subreddit), 
+      symbol = subr_to_asset[subreddit], 
       qty=0.01,
       side=OrderSide.BUY,
       time_in_force=TimeInForce.DAY)
